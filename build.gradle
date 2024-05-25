@@ -1,0 +1,120 @@
+plugins {
+	id 'io.spring.dependency-management' version '1.1.5'
+	id 'org.springframework.boot' version '3.3.0' apply false
+	id 'checkstyle'
+	id 'pmd'
+	id 'jacoco'
+	id "com.github.spotbugs" version "6.0.15"
+}
+
+subprojects {
+
+	group = 'com.fin.falah'
+	version = '0.0.1'
+
+	apply plugin: 'java'
+	apply plugin: 'io.spring.dependency-management'
+	apply plugin: 'java-library'
+	apply plugin: 'idea'
+	apply plugin: 'checkstyle'
+	apply plugin: 'pmd'
+	apply plugin: 'jacoco'
+	apply plugin: "com.github.spotbugs"
+
+	java {
+		sourceCompatibility = JavaVersion.VERSION_21
+		toolchain {
+			languageVersion = JavaLanguageVersion.of(21)
+		}
+	}
+
+	repositories {
+		mavenLocal()
+		mavenCentral()
+		maven {
+			url "https://plugins.gradle.org/m2/"
+		}
+		maven {
+			url "https://jaspersoft.jfrog.io/jaspersoft/jaspersoft-repo"
+		}
+	}
+
+	ext {
+		set('springBootVersion', "3.3.0")
+		set('springCloudVersion', "2023.0.1")
+	}
+
+	configurations {
+		compileOnly {
+			extendsFrom annotationProcessor
+		}
+	}
+
+
+	test {
+		useJUnitPlatform()
+	}
+
+	checkstyle {
+		toolVersion = '10.12.4'
+		configFile = file("$rootDir/config/checkstyle/checkstyle.xml")
+		showViolations = true
+		ignoreFailures = false
+	}
+
+	tasks.withType(Checkstyle) {
+		ignoreFailures = false
+		maxErrors = 0
+		maxWarnings = 0
+		reports {
+			xml.required = false
+			html.required = true
+			html.outputLocation = rootProject.file("build/reports/checkstyle/checkstyle.html")
+			html.stylesheet = rootProject.resources.text.fromFile('config/checkstyle/stylesheet.xsl')
+		}
+	}
+
+	pmd {
+		consoleOutput = true
+		incrementalAnalysis.set(false)
+		toolVersion = '6.52.0'
+		ruleSets = []
+		ruleSetFiles = files(rootProject.file('config/pmd/pmd.xml'))
+	}
+
+	jacoco {
+		toolVersion = "0.8.11"
+	}
+
+	spotbugs {
+		ignoreFailures = false
+		toolVersion = '4.8.5'
+		excludeFilter = file("$rootDir/config/spotbugs/exclude-filter.xml")
+		reportsDir = file("$projectDir/build/reports/spotbugs")
+	}
+
+	dependencies {
+		implementation 'org.springframework.boot:spring-boot-starter'
+		compileOnly 'org.projectlombok:lombok'
+		annotationProcessor 'org.projectlombok:lombok'
+		annotationProcessor "org.springframework.boot:spring-boot-configuration-processor"
+		testImplementation('org.springframework.boot:spring-boot-starter-test')
+	}
+
+	dependencyManagement {
+		imports {
+			mavenBom "org.springframework.boot:spring-boot-dependencies:${springBootVersion}"
+		}
+	}
+
+	tasks.register('codeAnalysis') {
+		dependsOn 'checkstyleMain'
+		dependsOn 'checkstyleTest'
+		dependsOn 'pmdMain'
+		dependsOn 'pmdTest'
+		dependsOn 'spotbugsMain'
+		dependsOn 'spotbugsTest'
+		dependsOn 'jacocoTestReport'
+	}
+
+}
